@@ -134,6 +134,8 @@
 #define CM_FL_MSP430_W_H_EN		250
 #define CM_FL_MSP430_PWM_EN		251
 
+#define CM_POWER_KEY_RAW		250
+
 #define CM_GET_KEYS				107
 
 
@@ -1685,7 +1687,11 @@ static int  ioctlDriver(struct file *filp, unsigned int command, unsigned long a
 			copy_to_user((void __user *)arg, &i, sizeof(unsigned long));
 			g_mxc_touch_triggered = 0;
       		break;	
-      		
+		case CM_POWER_KEY_RAW:
+			i = power_key_status();
+			copy_to_user((void __user *)arg, &i, sizeof(unsigned long));
+      		break;
+ 		
 		case CM_GET_WHEEL_KEY_STATUS:
 			i=0;
 			copy_to_user((void __user *)arg, &i, sizeof(unsigned long));
