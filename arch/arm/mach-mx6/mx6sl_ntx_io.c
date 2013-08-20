@@ -1552,7 +1552,7 @@ static int  ioctlDriver(struct file *filp, unsigned int command, unsigned long a
 			break;
 		case CM_nLED:
 			//printk("CM_nLED %d\n",p);
-			led_green(p?1:0);
+			led_green(p?0:1);
 			break;			
 			
 		case CM_nLED_CPU:
@@ -3638,7 +3638,7 @@ void ntx_gpio_resume (void)
 			power_key_int_function();
 		}
 	}
-
+/*
 	if (LED_conitnuous) {
 		wake_up_interruptible(&LED_freeze_WaitQueue);
 	}
@@ -3646,7 +3646,7 @@ void ntx_gpio_resume (void)
 		//ntx_led_blink (3, red_led_period);
 		//ntx_led_blink (4, green_led_period);
 		//ntx_led_blink (5, blue_led_period);
-	}
+	} */
 #endif //]CONFIG_ANDROID
 }
 
