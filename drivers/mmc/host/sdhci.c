@@ -2378,7 +2378,8 @@ int sdhci_suspend_host(struct sdhci_host *host, pm_message_t state)
 		return 0;
 	} */
 
-	if (!gSleep_Mode_Suspend)
+	// don't suspend mmc of wifi and don't suspend if not in deep sleep state
+	if ((!gSleep_Mode_Suspend) || (host->mmc->index == 2))
 		return 0;
 
 	sdhci_enable_clk(host);
@@ -2422,7 +2423,8 @@ int sdhci_resume_host(struct sdhci_host *host)
 		return 0;
 	} */
 
-	if (!gSleep_Mode_Suspend)
+	// don't resume mmc of wifi and don't resume if not from deep sleep state
+	if ((!gSleep_Mode_Suspend) || (host->mmc->index == 2))
 		return 0;
 
 	if (host->vmmc) {
