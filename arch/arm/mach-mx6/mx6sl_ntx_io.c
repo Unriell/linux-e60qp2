@@ -1769,6 +1769,7 @@ static int  ioctlDriver(struct file *filp, unsigned int command, unsigned long a
 			}
 			else
 				fl_set_percentage(p);
+			last_FL_set = p;
 			break;
 
 		case CM_FL_LM3630_SET:
@@ -1849,7 +1850,6 @@ break;
 					schedule_delayed_work(&FL_off, 120);
 				}
 				last_FL_duty = p;
-				last_FL_set = p;
 			}
 			break;
 
