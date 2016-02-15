@@ -3613,12 +3613,12 @@ int _ntx_wifi_power_ctrl (int isWifiEnable)
 		gi_wifi_power_status=0;
 	}
 	else {
-		if (iOldStatus) {
+/*		if (iOldStatus) {
 			printk ("Wifi already on.\n");
 			msleep(600);
 			mutex_unlock(&ntx_wifi_power_mutex);
 			return iOldStatus;
-		}
+		} */
 
 		// sdio port process ...
 		if(31==gptHWCFG->m_val.bPCB||32==gptHWCFG->m_val.bPCB || NTXHWCFG_TST_FLAG(gptHWCFG->m_val.bPCB_Flags2,1)) {
