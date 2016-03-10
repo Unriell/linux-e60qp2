@@ -739,7 +739,7 @@ static int k_set_temperature(struct fb_info *info)
 			return giLastTemprature;
 		}
 
-		gdwLastUpdateJiffies = jiffies+(60*HZ);
+		gdwLastUpdateJiffies = jiffies+(30*HZ);
 
 		ASSERT(gptHWCFG);
 		
@@ -765,10 +765,12 @@ static int k_set_temperature(struct fb_info *info)
 		
 		if(iChk>=0) {
 			//printk("%s():mxc_epdc_fb_set_temperature...\n",__FUNCTION__);// DBG
+			printk("%s(): calling mxc_epdc_fb_set_temperature... with %d\n",__FUNCTION__, giLastTemprature);// DBG
 			iChk = mxc_epdc_fb_set_temperature(giLastTemprature,info);
 		}
 		else {
-			gdwLastUpdateJiffies = jiffies;
+//			gdwLastUpdateJiffies = jiffies;
+			gdwLastUpdateJiffies = 0;
 		}
 	}
 	return giLastTemprature;
