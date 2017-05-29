@@ -31,6 +31,9 @@
 #include <linux/mmc/sdio_ids.h>
 #endif
 
+#include "../../../arch/arm/mach-mx6/ntx_hwconfig.h"
+extern volatile NTX_HWCONFIG *gptHWCFG;
+
 static int sdio_read_fbr(struct sdio_func *func)
 {
 	int ret;
@@ -114,8 +117,7 @@ static int sdio_read_cccr(struct mmc_card *card)
 		goto out;
 
 	cccr_vsn = data & 0x0f;
-
-	if (cccr_vsn > SDIO_CCCR_REV_1_20) {
+	if (cccr_vsn > SDIO_CCCR_REV_3_00) {
 		printk(KERN_ERR "%s: unrecognised CCCR structure version %d\n",
 			mmc_hostname(card->host), cccr_vsn);
 		return -EINVAL;
@@ -319,8 +321,13 @@ static unsigned mmc_sdio_get_max_clock(struct mmc_card *card)
 		 * the CIS transfer speed register relates to
 		 * high-speed, but it seems that 25 MHz is
 		 * mandatory.
+		 * For 802.11AC Wifi modules, set to 50 MHz
 		 */
-		max_dtr = 25000000;
+		if (11 == gptHWCFG->m_val.bWifi || 12 == gptHWCFG->m_val.bWifi) {
+			max_dtr = 50000000;
+		} else {
+			max_dtr = 25000000;
+		}
 	} else {
 		max_dtr = card->cis.max_dtr;
 	}

@@ -200,7 +200,7 @@ static int i2c_imx_trx_complete(struct imx_i2c_struct *i2c_imx)
 			++iRecoveryRetryCnt;
 			dev_err(&i2c_imx->adapter.dev, "<%s> i2c%d Timeout,recovery%d\n", __func__,i2c_imx->adapter.nr,iRecoveryRetryCnt);
 			if(iRecoveryRetryCnt<=5) {
-				if(ntx_i2c_recovery(i2c_imx->adapter.nr)>=0) {
+				if(ntx_i2c_recovery(i2c_imx->adapter.nr)<0) {
 					continue;
 				}
 			}

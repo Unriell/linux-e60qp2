@@ -42,6 +42,7 @@ static int giIRLED_Signal_AutoCalibration=0;
 static unsigned short gwZforce_FW_verA[4];
 static int custom_touchSizeLimit_set = 0;
 static unsigned long lastINT = 0;
+static unsigned short zforce_touch_flags;
 
 static unsigned long ZFORCE_TS_WIDTH=DEFAULT_PANEL_W;
 static unsigned long ZFORCE_TS_HIGHT=DEFAULT_PANEL_H;
@@ -58,9 +59,15 @@ static struct zForce_data {
 	unsigned char lower_amp_flag;
 } zForce_ir_touch_data;
 
+enum zForce_platform_flags {
+	ZFORCE_FLAG_NONE,
+	ZFORCE_FLAG_INV_X = 0x10,
+	ZFORCE_FLAG_INV_Y = 0x20,
+};
+
 static uint8_t cmd_Resolution_v2[] = {0xEE, 0x05, 0x02, (DEFAULT_PANEL_H&0xFF), (DEFAULT_PANEL_H>>8), (DEFAULT_PANEL_W&0xFF), (DEFAULT_PANEL_W>>8)};
 static const uint8_t cmd_TouchData_v2[] = {0xEE, 0x01, 0x04};
-static const uint8_t cmd_Frequency_v2[] = {0xEE, 0x07, 0x08, 50, 00, 100, 00, 100, 00};
+static uint8_t cmd_Frequency_v2[] = {0xEE, 0x07, 0x08, 50, 00, 100, 00, 100, 00};
 static const uint8_t cmd_getFirmwareVer_v2[] = {0xEE, 0x01, 0x1E};
 static const uint8_t cmd_Active_v2[] = {0xEE, 0x01, 0x01};
 static const uint8_t cmd_Deactive_v2[] = {0xEE, 0x01, 0x00};
@@ -300,7 +307,7 @@ static int zForce_ir_touch_recv_data(struct i2c_client *client, uint8_t *buf)
 				i2c_master_send(client, cmd_Dual_touch_v2, sizeof(cmd_Dual_touch_v2));
 			}else{
 				i2c_master_send(client, cmd_Dual_touch, sizeof(cmd_Dual_touch));
-			}	
+			}
 //			printk ("[%s-%d] send cmd_SetConfiguration\n",__func__,__LINE__);
 			g_zforce_initial_step = 3;
 			break;
@@ -377,13 +384,19 @@ static int zForce_ir_touch_recv_data(struct i2c_client *client, uint8_t *buf)
 			switch (g_zforce_initial_step) {
 				case 1:
 					if(8==gptHWCFG->m_val.bTouchCtrl || 11==gptHWCFG->m_val.bTouchCtrl) {
+						i2c_master_send(zForce_ir_touch_data.client, cmd_Active_v2, sizeof(cmd_Active_v2));
+					}else{
+						i2c_master_send(zForce_ir_touch_data.client, cmd_Active, sizeof(cmd_Active));
+					}	
+				case 2:
+					if(8==gptHWCFG->m_val.bTouchCtrl || 11==gptHWCFG->m_val.bTouchCtrl) {
 						i2c_master_send(client, cmd_Resolution_v2, sizeof(cmd_Resolution_v2));
 					}else{
 						i2c_master_send(client, cmd_Resolution, sizeof(cmd_Resolution));
 					}
 					printk ("[%s-%d] send cmd_Resolution\n",__func__,__LINE__);
 					break;
-				case 2:
+				case 8:
 					if(8==gptHWCFG->m_val.bTouchCtrl || 11==gptHWCFG->m_val.bTouchCtrl) {
 						i2c_master_send(client, cmd_Frequency_v2, sizeof(cmd_Frequency_v2));
 					}else{
@@ -391,7 +404,7 @@ static int zForce_ir_touch_recv_data(struct i2c_client *client, uint8_t *buf)
 					}
 					printk ("[%s-%d] send cmd_Frequency\n",__func__,__LINE__);
 					break;
-				case 8:
+				case 4:
 					if(8==gptHWCFG->m_val.bTouchCtrl || 11==gptHWCFG->m_val.bTouchCtrl) {
 						i2c_master_send(client, cmd_TouchData_v2, sizeof(cmd_TouchData_v2));
 					}else{
@@ -507,8 +520,16 @@ static void zForce_ir_touch_report_data(struct i2c_client *client, uint8_t *buf)
 			if (g_ghost_occurred) {
 				printk("ghost occurred! Ignore id %d\n",id);
 			} else if (gIsCustomerUi) {
-				y = packet[2] | (packet[3] << 8);
-				x = ZFORCE_TS_HIGHT -(packet[0] | (packet[1] << 8))-1;
+				if(zforce_touch_flags&ZFORCE_FLAG_INV_Y) {
+					y = ZFORCE_TS_WIDTH - (packet[2] | (packet[3] << 8)) - 1;
+				} else {
+					y = packet[2] | (packet[3] << 8);
+				}
+				if(zforce_touch_flags&ZFORCE_FLAG_INV_X) {
+					x = packet[0] | (packet[1] << 8);
+				} else {
+					x = ZFORCE_TS_HIGHT -(packet[0] | (packet[1] << 8))-1;
+				}
 				if( (2 == id) && (g_touch_pressed&(1<<1)))  // id 1 also pressed
 				{
 					input_report_abs(zForce_ir_touch_data.input, ABS_MT_TRACKING_ID, 1);
@@ -541,9 +562,16 @@ static void zForce_ir_touch_report_data(struct i2c_client *client, uint8_t *buf)
 				//printk (KERN_ERR"[%s-%d] touch %d (%d, %d) down\n",__func__,__LINE__, id,x,y);
 			}
 			else {
-				x = packet[2] | (packet[3] << 8);
-//				y = ZFORCE_TS_HIGHT -(packet[0] | (packet[1] << 8)) -1;
-				y = packet[0] | (packet[1] << 8);
+				if(zforce_touch_flags&ZFORCE_FLAG_INV_X) {
+					x = ZFORCE_TS_WIDTH - (packet[2] | (packet[3] << 8));
+				} else {
+					x = packet[2] | (packet[3] << 8);
+				}
+				if(zforce_touch_flags&ZFORCE_FLAG_INV_Y) {
+					y = ZFORCE_TS_HIGHT -(packet[0] | (packet[1] << 8)) -1;
+				} else {
+					y = packet[0] | (packet[1] << 8);
+				}
 				input_report_abs(zForce_ir_touch_data.input, ABS_MT_TRACKING_ID, id);
 				input_report_abs(zForce_ir_touch_data.input, ABS_MT_TOUCH_MAJOR, 1);
 				input_report_abs(zForce_ir_touch_data.input, ABS_MT_WIDTH_MAJOR, 1);
@@ -571,7 +599,8 @@ static void zForce_ir_touch_report_data(struct i2c_client *client, uint8_t *buf)
 			}
 		}
 		else if(state==3) {
-			printk("invalid point detected. discard!\n");
+			printk("id(%d) invalid point detected. discard!\n",id);
+			_zForce_ir_touch_report_touch_up(id);
 		} else if(state==4) {
 			printk ("[%s-%d] touch %d remains when ghost touch detected\n",__func__,__LINE__, id);
 			_zForce_ir_touch_report_touch_up(id);
@@ -644,6 +673,14 @@ void zForce_ir_touch_ts_triggered(void)
 //	{ }
 //};
 
+static ssize_t FW_ver_read(struct device *dev, struct device_attribute *attr,
+			char *buf)
+{
+
+	sprintf(buf,"%04X %04X %04X %04X\n",gwZforce_FW_verA[3],gwZforce_FW_verA[2],gwZforce_FW_verA[1],gwZforce_FW_verA[0]);
+	return strlen(buf);
+}
+
 static ssize_t neo_info(struct device *dev, struct device_attribute *attr,
 			char *buf)
 {
@@ -709,12 +746,35 @@ static ssize_t touchSizeLimit_set(struct device *dev, struct device_attribute *a
 	return count;
 }
 
+static ssize_t scanningFrequency_set(struct device *dev, struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	int rc = 0;
+	int freq = 0;
+	sscanf (buf,"%d", &freq);
+//	printk( "input values = %d\n", freq);
+	if (freq < 0 || freq > 65535) {
+		printk("Scanning frequency valid range 0~65535\n");
+		return -EINVAL;
+	}
+	cmd_Frequency_v2[5] = freq&0xFF;
+	cmd_Frequency_v2[6] = freq>>8;
+
+	rc = i2c_master_send(zForce_ir_touch_data.client, cmd_Frequency_v2, sizeof(cmd_Frequency_v2));
+
+	return rc?rc:count;
+}
+
 static DEVICE_ATTR(neocmd, 0644, neo_info, neo_ctl);
 static DEVICE_ATTR(touchSizeLimit, S_IWUSR, NULL, touchSizeLimit_set);
+static DEVICE_ATTR(scanningFreq, S_IWUSR, NULL, scanningFrequency_set);
+static DEVICE_ATTR(FW_ver, S_IRUGO, FW_ver_read, NULL);
 
 static const struct attribute *sysfs_zforce_attrs[] = {
 	&dev_attr_neocmd.attr,
 	&dev_attr_touchSizeLimit.attr,
+	&dev_attr_scanningFreq.attr,
+	&dev_attr_FW_ver.attr,
 	NULL,
 };
 
@@ -936,7 +996,7 @@ static int zForce_ir_touch_probe(
 		cmd_Resolution_v2[5] = (uint8_t)(ZFORCE_TS_WIDTH&0xff);
 		cmd_Resolution_v2[6] = (uint8_t)(ZFORCE_TS_WIDTH>>8);
 	}
-  input_set_abs_params(zForce_ir_touch_data.input, ABS_X, 0, ZFORCE_TS_X_MAX, 0, 0);
+	input_set_abs_params(zForce_ir_touch_data.input, ABS_X, 0, ZFORCE_TS_X_MAX, 0, 0);
 	input_set_abs_params(zForce_ir_touch_data.input, ABS_Y, 0, ZFORCE_TS_Y_MAX, 0, 0);
 	input_set_abs_params(zForce_ir_touch_data.input, ABS_HAT0X, 0, ZFORCE_TS_X_MAX, 0, 0);
 	input_set_abs_params(zForce_ir_touch_data.input, ABS_HAT0Y, 0, ZFORCE_TS_Y_MAX, 0, 0);
@@ -947,6 +1007,10 @@ static int zForce_ir_touch_probe(
 	input_set_abs_params(zForce_ir_touch_data.input, ABS_MT_TRACKING_ID, 1, 2, 0, 0);
 	input_set_abs_params(zForce_ir_touch_data.input, ABS_PRESSURE, 0, 2048, 0, 0);
 
+	if(5==gptHWCFG->m_val.bDisplayPanel) {
+		// 6" Top EPD
+		zforce_touch_flags = ZFORCE_FLAG_INV_Y | ZFORCE_FLAG_INV_X;
+	}
 
 	err = input_register_device(zForce_ir_touch_data.input);
 	if (err < 0) {
@@ -954,7 +1018,7 @@ static int zForce_ir_touch_probe(
 		goto fail;
 	}
 
-	err = device_create_file(&client->dev, &dev_attr_neocmd);
+	err = sysfs_create_files(&zForce_ir_touch_data.input->dev.kobj, &sysfs_zforce_attrs);
 	if (err) {
 		pr_debug("Can't create device file!\n");
 		return -ENODEV;
@@ -975,7 +1039,7 @@ fail:
 
 static int zForce_ir_touch_remove(struct i2c_client *client)
 {
-	device_remove_file(&client->dev, &dev_attr_neocmd);
+	sysfs_remove_files(&zForce_ir_touch_data.input->dev.kobj, &sysfs_zforce_attrs);
 
 	cancel_delayed_work_sync (&zForce_ir_touch_data.work);
 //	destroy_workqueue(&zForce_ir_touch_data.work);

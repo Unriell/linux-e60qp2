@@ -517,7 +517,7 @@ int ricoh619_charger_detect(void)
 						//printk("CDP charger\n");
 					}
 					else if (0x00 == (reg_val&0x30)) {// SDP detected.
-						result = SDP_CHARGER;
+						result = SDP_PC_CHARGER;
 						//printk("SDP charger\n");
 					}
 					else {
@@ -912,12 +912,25 @@ static int  __devexit ricoh61x_i2c_remove(struct i2c_client *client)
 	return 0;
 }
 
+extern volatile int giRicoh61x_rtc_user_enabled ;
 #ifdef CONFIG_PM
 static int ricoh61x_i2c_suspend(struct i2c_client *client, pm_message_t state)
 {
 	struct ricoh61x *ricoh61x = i2c_get_clientdata(client);
+	uint8_t reg_val;
+	int ret;
 
 	ricoh61x->iIsSuspending = 1;
+
+  /* Disable rtc Interrupt */
+	ret = __ricoh61x_read(ricoh61x_i2c_client,
+				      rtc_ctrl1, &reg_val);
+
+	if(giRicoh61x_rtc_user_enabled) {
+		reg_val |= 0x40;	// set DALE flag
+    	__ricoh61x_write(ricoh61x_i2c_client, rtc_ctrl1, reg_val);
+	}
+
 
 #if 0
 	printk(KERN_INFO "PMU: %s:\n", __func__);
@@ -931,25 +944,26 @@ int pwrkey_wakeup;
 static int ricoh61x_i2c_resume(struct i2c_client *client)
 {
 	struct ricoh61x *ricoh61x = i2c_get_clientdata(client);
-	uint8_t reg_val;
+	uint8_t reg_val,reg_val2;
 	int ret;
+	int i=1;
 
 //	printk(KERN_INFO "PMU: %s:\n", __func__);
 	
-	/* Disable all Interrupt */
-	__ricoh61x_write(client, RICOH61x_INTC_INTEN, 0x0);
-
 	ret = __ricoh61x_read(client, RICOH61x_INT_IR_SYS, &reg_val);
 	if (reg_val & 0x01) { /* If PWR_KEY wakeup */
 		printk(KERN_INFO "PMU: %s: PWR_KEY Wakeup\n", __func__);
 		pwrkey_wakeup = 1;
 		/* Clear PWR_KEY IRQ */
-		__ricoh61x_write(client, RICOH61x_INT_IR_SYS, 0x0);
+		__ricoh61x_write(client, RICOH61x_INT_IR_SYS, reg_val & 0xFE);
 	}
 //	enable_irq(client->irq);
 
-	/* Enable all Interrupt */
-	__ricoh61x_write(client, RICOH61x_INTC_INTEN, 0xff);
+  /* Disable rtc Interrupt */
+	ret = __ricoh61x_read(ricoh61x_i2c_client,
+				      rtc_ctrl1, &reg_val);
+	reg_val &= 0xBF;	// clear DALE flag
+    __ricoh61x_write(ricoh61x_i2c_client, rtc_ctrl1, reg_val);
 
 	ricoh61x->iIsSuspending = 0;
 

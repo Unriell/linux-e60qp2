@@ -22,7 +22,6 @@
  * GNU General Public License for more details.
  * 
  */
-
 #include <linux/unistd.h>  
 #include <linux/device.h>
 #include <linux/init.h>
@@ -43,7 +42,8 @@
 #include <linux/bitops.h>
 #include <linux/kernel.h>
 #include <linux/byteorder/generic.h>
-#ifdef CONFIG_HAS_EARLYSUSPEND
+//#ifdef CONFIG_HAS_EARLYSUSPEND
+#if 0
 	#include <linux/earlysuspend.h>
 #endif 
 #include <linux/interrupt.h>
@@ -160,7 +160,8 @@ struct waltop_I2C
 	// Ensures that only one function can specify the Device Mode at a time
 	struct mutex mutex; // reentrant protection for struct
 
-	#ifdef CONFIG_HAS_EARLYSUSPEND
+//	#ifdef CONFIG_HAS_EARLYSUSPEND
+	#if 0
 	struct early_suspend early_suspend;
 	#endif
 };
@@ -178,7 +179,7 @@ static irqreturn_t waltop_I2C_irq(int irq, void *handle);
 static struct workqueue_struct *waltop_I2C_wq=NULL;
 static struct waltop_I2C *tp = NULL;
 static u8 m_device_info[12];
-static int m_show_DebugLog=1;	// show Debug debug log on/off
+static int m_show_DebugLog=0;	// show Debug debug log on/off
 static int empen_early_suspended = 0;	// 1 means in suspend mode
 //static int m_driver_probe=0;
 #if (!USE_IRQ_FUNCTION)
@@ -994,8 +995,10 @@ void waltop_I2C_worker(struct work_struct *work)
 		sum = sum + tp->pkt_data[i];
 	if( sum != tp->pkt_data[CORD_SUM_BYTE] )
 	{
-		printk(KERN_ERR "%s#%d:%s Checksum mismatch, %x, %x\n", 
+		if( m_show_DebugLog ) {
+			printk(KERN_ERR "%s#%d:%s Checksum mismatch, %x, %x\n",
 				KLOG_NAME, __LINE__, __func__, tp->pkt_data[CORD_SUM_BYTE], sum);
+		}
 		goto i2cWorker_out;
 	}
 
@@ -1156,6 +1159,7 @@ static int waltop_I2C_initialize(struct i2c_client *client)
 {
 	struct input_dev *input_device;
 	int ret = 0;
+	int retry = 0;
 	printk("waltop_I2C_initialize***\n");
 
 	// create the input device and register it.
@@ -1171,6 +1175,13 @@ static int waltop_I2C_initialize(struct i2c_client *client)
 
 	// 2013/01/30, Martin add device information
 	ret = waltop_I2C_readDeviceInfo();
+	while ((ret <= 0) && retry < 10) {
+		printk("waltop_I2C_readDeviceInfo try again !!\n");
+		waltop_ResetEMPen(0);
+		ret = waltop_I2C_readDeviceInfo();
+		retry++;
+	}
+
 	if( ret>0 ) { 
 		tp->x_max = ((m_device_info[1] << 8) | m_device_info[2]);
 		tp->y_max = ((m_device_info[3] << 8) | m_device_info[4]);
@@ -1195,7 +1206,7 @@ static int waltop_I2C_initialize(struct i2c_client *client)
 			__func__ ,ret, tp->x_max, tp->y_max, tp->p_max, tp->fw_version);
 	tp->p_minTipOn = WALTOP_MIN_P_TIPON;
 
-	waltop_I2C_wq = create_singlethread_workqueue("waltop_I2C_wq");
+	waltop_I2C_wq = create_workqueue("waltop_I2C_wq");
 	if (NULL == waltop_I2C_wq) {
 		printk(KERN_ERR "%s-%s: ERROR: Could not create the Work Queue due to insufficient memory\n", KLOG_NAME, __func__);
 		ret = -ENOMEM;
@@ -1271,7 +1282,8 @@ succeed:
 /*****************************************************************************
  * Early Suspend
  ****************************************************************************/
-#ifdef CONFIG_HAS_EARLYSUSPEND
+//#ifdef CONFIG_HAS_EARLYSUSPEND
+#if 0
 static void waltop_early_suspend(struct early_suspend *h)
 {
 	int ret = 0;
@@ -1405,7 +1417,8 @@ static int __devinit waltop_i2c_probe(struct i2c_client *client,const struct i2c
 	pen_set_job_start();
 
 #if (!ADD_PALTFORM_DEVICE_DRIVER)
-#ifdef CONFIG_HAS_EARLYSUSPEND
+//#ifdef CONFIG_HAS_EARLYSUSPEND
+#if 0
 	tp->early_suspend.level = EARLY_SUSPEND_LEVEL_DISABLE_FB - 1;
 	tp->early_suspend.suspend = waltop_early_suspend;
 	tp->early_suspend.resume = waltop_late_resume;
@@ -1428,7 +1441,8 @@ static int __devexit waltop_i2c_remove(struct i2c_client *client)
 {
 	dev_info(&(client->dev), "%s-%s: Driver is unregistering\n", KLOG_NAME, __func__);
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
+//#ifdef CONFIG_HAS_EARLYSUSPEND
+#if 0
 	unregister_early_suspend(&tp->early_suspend);
 #endif
 	input_unregister_device(tp->input);	

@@ -26,6 +26,8 @@
 #include <linux/workqueue.h>
 #include <linux/gpio.h>
 
+#include "gpiofn.h"
+
 struct gpio_button_data {
 	struct gpio_keys_button *button;
 	struct input_dev *input;
@@ -504,9 +506,12 @@ fail2:
 
 static int gpio_keys_open(struct input_dev *input)
 {
+	int iRet;
 	struct gpio_keys_drvdata *ddata = input_get_drvdata(input);
 
-	return ddata->enable ? ddata->enable(input->dev.parent) : 0;
+	iRet = ddata->enable ? ddata->enable(input->dev.parent) : 0;
+	gpiofn_rechk();
+	return iRet;
 }
 
 static void gpio_keys_close(struct input_dev *input)
@@ -587,6 +592,8 @@ static int __devinit gpio_keys_probe(struct platform_device *pdev)
 	input_set_capability(input, EV_KEY, KEY_F1);
 
 	input_set_capability(input, EV_SW, SW_LID);
+	input_set_capability(input, EV_SW, SW_HEADPHONE_INSERT);
+	input_set_capability(input, EV_MSC,MSC_RAW);
 
 	error = sysfs_create_group(&pdev->dev.kobj, &gpio_keys_attr_group);
 	if (error) {
