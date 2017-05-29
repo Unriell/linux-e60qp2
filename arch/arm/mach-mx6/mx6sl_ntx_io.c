@@ -1832,7 +1832,7 @@ static int  ioctlDriver(struct file *filp, unsigned int command, unsigned long a
 printk("front light sleep %d\n", p);
 printk("front light has changed ... revisit once we have samples\n");
 break;
-			if(0!=gptHWCFG->m_val.bFrontLight)
+/*			if(0!=gptHWCFG->m_val.bFrontLight)
 			{
 				if (p) {
 					if(delayed_work_pending(&FL_off)){
@@ -1857,6 +1857,7 @@ break;
 				last_FL_duty = p;
 			}
 			break;
+*/
 
 		case CM_FRONT_LIGHT_AVAILABLE:
 			{
