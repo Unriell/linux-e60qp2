@@ -2922,7 +2922,10 @@ void ricoh_suspend_state_sync(void)
 		sus_current = 5200;
 		hiber_current = 800;
 		break;
-		
+	case 68://E60QPX
+		sus_current = 2646;
+		hiber_current = 772;
+		break;
 	}
 	bat_alert_req_flg = 0;	// 0:Normal, 1:Re-synchronize request from system
 }
