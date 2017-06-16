@@ -2466,7 +2466,13 @@ static int gpio_initials(void)
 				ARRAY_SIZE(mx6sl_ntx_sd2_wifi_pads),(iomux_v3_cfg_t)PAD_CTL_DSE_34ohm);
 		
 	}
+	else if (68==gptHWCFG->m_val.bPCB) {
+		// E60QPX for EMI  .
 
+		printk("SD2 DSE set to 120 ohm \n");
+		mxc_pads_dse_setup(mx6sl_ntx_sd2_wifi_pads,
+				ARRAY_SIZE(mx6sl_ntx_sd2_wifi_pads),(iomux_v3_cfg_t)PAD_CTL_DSE_120ohm);
+	}
 	// initial test point for ESD , Joseph 20100504
 	ntx_ite8951_power(1);
 	return 0;
