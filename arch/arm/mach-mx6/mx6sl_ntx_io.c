@@ -1829,35 +1829,22 @@ static int  ioctlDriver(struct file *filp, unsigned int command, unsigned long a
 			break;
 
 		case CM_FRONT_LIGHT_SLEEP:
-printk("front light sleep %d\n", p);
-printk("front light has changed ... revisit once we have samples\n");
-break;
-/*			if(0!=gptHWCFG->m_val.bFrontLight)
-			{
-				if (p) {
-					if(delayed_work_pending(&FL_off)){
-						cancel_delayed_work_sync(&FL_off);
-					}
-					if (0 == last_FL_duty){
-						msp430_fl_endtime(0xffff); // Disable front light auto off timer .
-						msp430_fl_enable(1);
-
-						msleep(100);
-						gpio_direction_output(MX6SL_FL_EN,0);
-
-						ioctlDriver(NULL, CM_FRONT_LIGHT_SET, last_FL_set);
-					}
+			if (p) {
+				if (0 == last_FL_duty)
+					ioctlDriver(NULL, CM_FRONT_LIGHT_SET, last_FL_set);
+			} else {
+				if (2==gptHWCFG->m_val.bFL_PWM||6==gptHWCFG->m_val.bFL_PWM||7==gptHWCFG->m_val.bFL_PWM) {
+					fl_lm3630a_percentageEx (0,0);
+					last_FL_duty=0;
 				}
-				else if(last_FL_duty != 0){
-					printk ("turn off front light\n");
-					msp430_fl_enable (0);
-					FL_module_off();
-					schedule_delayed_work(&FL_off, 120);
+				else if(5==gptHWCFG->m_val.bFL_PWM) {
+					fl_lm3630a_percentageEx (1,0);
+					last_FL_duty=0;
 				}
-				last_FL_duty = p;
+				else
+					fl_set_percentage(0);
 			}
 			break;
-*/
 
 		case CM_FRONT_LIGHT_AVAILABLE:
 			{
