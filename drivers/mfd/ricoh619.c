@@ -924,13 +924,13 @@ static int ricoh61x_i2c_suspend(struct i2c_client *client, pm_message_t state)
 	ricoh61x->iIsSuspending = 1;
 
   /* Disable rtc Interrupt */
-	ret = __ricoh61x_read(ricoh61x_i2c_client,
+/*	ret = __ricoh61x_read(ricoh61x_i2c_client,
 				      rtc_ctrl1, &reg_val);
 
 	if(giRicoh61x_rtc_user_enabled) {
 		reg_val |= 0x40;	// set DALE flag
     	__ricoh61x_write(ricoh61x_i2c_client, rtc_ctrl1, reg_val);
-	}
+	} */
 
 
 #if 0
@@ -961,10 +961,10 @@ static int ricoh61x_i2c_resume(struct i2c_client *client)
 //	enable_irq(client->irq);
 
   /* Disable rtc Interrupt */
-	ret = __ricoh61x_read(ricoh61x_i2c_client,
+/*	ret = __ricoh61x_read(ricoh61x_i2c_client,
 				      rtc_ctrl1, &reg_val);
 	reg_val &= 0xBF;	// clear DALE flag
-    __ricoh61x_write(ricoh61x_i2c_client, rtc_ctrl1, reg_val);
+    __ricoh61x_write(ricoh61x_i2c_client, rtc_ctrl1, reg_val);*/
 
 	ricoh61x->iIsSuspending = 0;
 

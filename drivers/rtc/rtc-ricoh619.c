@@ -332,7 +332,7 @@ static int ricoh61x_rtc_alarm_enable(struct device *dev, unsigned int enabled)
 	int err;
 	uint8_t reg_data;
 
-	printk(KERN_DEBUG "PMU: %s :%d\n", __func__, enabled);
+	printk(KERN_INFO "PMU: %s :%d\n", __func__, enabled);
 
 	err = 0;
 	if (enabled) {
