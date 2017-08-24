@@ -477,12 +477,12 @@ ERR:
 
 static int ricoh61x_rtc_ioctl(struct device *dev, unsigned int cmd, unsigned long arg)
 {
-	if (cmd == RTC_WAKEUP_FLAG) {
+/*	if (cmd == RTC_WAKEUP_FLAG) {
 		extern int g_wakeup_by_alarm;
 		put_user(g_wakeup_by_alarm, (unsigned long __user *) arg);
 		g_wakeup_by_alarm = 0;
 		return 0;
-	}
+	}*/
 	return -ENOIOCTLCMD;
 }
 

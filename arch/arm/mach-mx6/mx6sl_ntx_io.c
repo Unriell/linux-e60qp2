@@ -1589,7 +1589,7 @@ static int  ioctlDriver(struct file *filp, unsigned int command, unsigned long a
 				}
             }
 	        i = g_wakeup_by_alarm;		// Joseph 091221 for slide show test.
-	        g_wakeup_by_alarm = 0;
+//	        g_wakeup_by_alarm = 0;
 			copy_to_user((void __user *)arg, &i, sizeof(unsigned long));
 			break;
 			
